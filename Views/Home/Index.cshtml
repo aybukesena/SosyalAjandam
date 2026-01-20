@@ -1,0 +1,133 @@
+﻿@model SosyalAjandam.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container-fluid p-4">
+    <div class="row g-4">
+        
+        <!-- Welcome & Quote Area -->
+        <div class="col-12 mb-2">
+             <div class="glass-panel p-4 d-flex justify-content-between align-items-center">
+                 <div>
+                     <h1 class="display-6 neon-text fw-bold">Merhaba, @Model.DisplayName</h1>
+                     <p class="text-white-50 mb-0">Bugün senin günün. Enerjini doğru kullan!</p>
+                 </div>
+                 <div class="d-flex align-items-center gap-3">
+                     <!-- Smart Planning Button -->
+                     <button type="button" class="btn btn-cyber" data-bs-toggle="modal" data-bs-target="#strategyModal">
+                        <i class="bi bi-stars"></i> Aura ile Planla
+                     </button>
+                     
+                     <div class="text-end d-none d-md-block">
+                        <i class="bi bi-quote fs-1 text-neon-purple opacity-50"></i>
+                         <!-- Keep Quote or hide if screen small -->
+                     </div>
+                 </div>
+             </div>
+        </div>
+
+        <!-- Daily Summary Card -->
+        <div class="col-md-6">
+            <div class="glass-panel p-4 h-100 text-center position-relative overflow-hidden">
+                <div class="position-absolute top-0 start-0 w-100 h-100" style="background: radial-gradient(circle at 0% 0%, rgba(192, 38, 211, 0.1), transparent 70%); pointer-events: none;"></div>
+                
+                <h3 class="text-white mb-4"><i class="bi bi-activity text-neon-blue me-2"></i>Günün Özeti</h3>
+                
+                <div class="position-relative d-inline-block mb-3">
+                    <svg width="160" height="160" viewBox="0 0 160 160">
+                        <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" />
+                        <!-- Circumference = 2 * pi * 70 ~= 439.8 -->
+                        <circle cx="80" cy="80" r="70" fill="none" stroke="var(--neon-green)" stroke-width="12"
+                                stroke-dasharray="439.8" stroke-dashoffset="@(439.8 * (1 - Model.CompletionRate/100.0))"
+                                transform="rotate(-90 80 80)" style="transition: stroke-dashoffset 1.5s ease; stroke-linecap: round;" />
+                    </svg>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <h1 class="display-4 fw-bold text-white mb-0">@Model.CompletionRate%</h1>
+                        <small class="text-white-50">Başarı</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-around mt-3">
+                    <div>
+                        <h4 class="text-white mb-0">@Model.DailyCompleted</h4>
+                        <small class="text-secondary">Tamamlanan</small>
+                    </div>
+                     <div>
+                        <h4 class="text-white mb-0">@Model.DailyTotal</h4>
+                        <small class="text-secondary">Toplam</small>
+                    </div>
+                </div>
+
+                <div class="mt-4 px-3">
+                     <div class="d-flex justify-content-between text-white-50 small mb-1">
+                         <span>Level @Model.CurrentLevel</span>
+                         <span>@Model.CurrentXP XP</span>
+                     </div>
+                     <div class="progress" style="height: 6px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-neon-purple shadow-glow-purple" role="progressbar" style="width: @Model.XPProgress%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Tasks -->
+        <div class="col-md-6">
+            <div class="glass-panel p-4 h-100">
+                <h3 class="text-white mb-4"><i class="bi bi-exclamation-circle text-neon-purple me-2"></i>Kritik Görevler</h3>
+                
+                @if (Model.CriticalTasks.Any())
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var task in Model.CriticalTasks)
+                        {
+                            <div class="glass-panel p-3 border-start border-3 border-danger">
+                                <h5 class="mb-1 text-white">@task.Title</h5>
+                                <small class="text-white-50">@task.Description</small>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-check2-all fs-1 text-success mb-3"></i>
+                        <p class="text-white">Harika! Şu an kritik bir görev yok.</p>
+                    </div>
+                }
+                
+                <div class="mt-4 text-center">
+                    <a asp-controller="Agenda" asp-action="Index" class="btn btn-cyber-outline w-100">Tüm Ajandayı Gör</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Strategy Modal -->
+<div class="modal fade" id="strategyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-panel border-0 text-white" style="background: rgba(15, 23, 42, 0.95);">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title neon-text"><i class="bi bi-magic me-2"></i>Aura Analizi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="aura-sphere aura-level-@Model.CurrentLevel me-3" style="width: 40px; height: 40px; animation: pulse 2s infinite;"></div>
+                    <span class="fst-italic text-info">Verilerin analiz edildi...</span>
+                </div>
+                
+                <div class="p-3 rounded" style="background: rgba(255,255,255,0.05);">
+                    <!-- Use Html.Raw for markdown-like formatting (be careful with XSS if user input, here it is system generated) -->
+                    @Html.Raw(Model.DailyStrategy?.Replace("\n", "<br>").Replace("**", "<b>").Replace("🔹", "<br>🔹"))
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-cyber w-100" data-bs-dismiss="modal">Anlaşıldı, Başlıyorum!</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,144 @@
+@{
+    ViewData["Title"] = "İstatistikler";
+}
+
+<div class="stats-container">
+    <div class="glass-card full-width">
+        <h2 class="neon-text">Performans Analizi</h2>
+        
+        <div class="stats-summary">
+            <div class="stat-item">
+                <span class="stat-label">Seviye</span>
+                <span class="stat-value neon-blue">@ViewBag.CurrentLevel</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Toplam XP</span>
+                <span class="stat-value neon-purple">@ViewBag.TotalXP</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Tamamlanan Görevler</span>
+                <span class="stat-value">@ViewBag.CompletedTasksCount</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="weeklyProductivityChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stats-container {
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+    }
+    .stats-summary {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+    }
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .stat-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .neon-blue { color: #00f3ff; text-shadow: 0 0 10px #00f3ff; }
+    .neon-purple { color: #bc13fe; text-shadow: 0 0 10px #bc13fe; }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+        margin-top: 2rem;
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('weeklyProductivityChart').getContext('2d');
+        
+        // Gradient for the line
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(188, 19, 254, 0.6)'); // Neon Purple
+        gradient.addColorStop(1, 'rgba(188, 19, 254, 0.0)');
+
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.ChartLabels)),
+                datasets: [{
+                    label: 'Tamamlanan Görevler',
+                    data: @Html.Raw(Json.Serialize(ViewBag.ChartData)),
+                    backgroundColor: gradient,
+                    borderColor: '#bc13fe',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#00f3ff',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#00f3ff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20, 20, 40, 0.9)',
+                        titleColor: '#00f3ff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        displayColors: false,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

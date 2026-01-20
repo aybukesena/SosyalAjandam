@@ -1,0 +1,191 @@
+@model SosyalAjandam.ViewModels.GroupDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Group.Name;
+    var groupInitial = Model.Group.Name.FirstOrDefault().ToString().ToUpper();
+}
+
+<!-- Flash Messages -->
+@if(TempData["Success"] != null) { <div class="alert alert-success position-relative" style="z-index: 2;">@TempData["Success"]</div> }
+@if(TempData["Error"] != null) { <div class="alert alert-danger position-relative" style="z-index: 2;">@TempData["Error"]</div> }
+
+<div class="position-relative overflow-hidden" style="min-height: 80vh;">
+    <!-- Huge Transparent Background Initial -->
+    <div class="group-initial-bg">@groupInitial</div>
+
+    <div class="row position-relative" style="z-index: 1;">
+        
+        <!-- Header -->
+        <div class="col-12 mb-4 text-center">
+            <h1 class="display-3 fw-bold text-white mb-2" style="text-shadow: 0 0 20px rgba(124, 58, 237, 0.5);">@Model.Group.Name</h1>
+            <p class="lead text-white-50">@Model.Group.Description</p>
+            <span class="badge glass-panel px-3 py-2 text-neon-blue font-monospace">Kod: @Model.Group.InviteCode</span>
+        </div>
+
+        <!-- Left: Tasks & Assignment -->
+        <div class="col-lg-8">
+            <!-- Assignment Panel (Leader Only) -->
+            @if(Model.IsLeader)
+            {
+                <!-- Pending Requests (Leader Only) -->
+                @if(Model.PendingRequests.Any())
+                {
+                    <div class="glass-panel p-4 mb-4 border border-warning">
+                        <h4 class="text-warning mb-3"><i class="bi bi-bell-fill me-2"></i>Katılım İstekleri</h4>
+                        <div class="list-group list-group-flush bg-transparent">
+                            @foreach(var req in Model.PendingRequests)
+                            {
+                                <div class="list-group-item bg-transparent border-bottom border-secondary px-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-white mb-1">@req.User?.UserName</h6>
+                                            <div class="small text-secondary">
+                                                <span class="badge bg-darker me-2">Lvl @req.User?.Level</span>
+                                                <span class="text-info">@req.User?.ExperiencePoints XP</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <form asp-action="ApproveRequest" method="post">
+                                                <input type="hidden" name="requestId" value="@req.Id" />
+                                                <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i></button>
+                                            </form>
+                                            <form asp-action="RejectRequest" method="post">
+                                                <input type="hidden" name="requestId" value="@req.Id" />
+                                                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-x-lg"></i></button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="glass-panel p-4 mb-4 neon-border">
+                     <h4 class="text-white mb-3"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Görev Ata</h4>
+                     <form asp-action="AssignTask" method="post" class="row g-3">
+                        <input type="hidden" name="groupId" value="@Model.Group.Id" />
+                        <div class="col-md-5">
+                            <input type="text" name="title" class="form-control bg-transparent text-white" placeholder="Görev Başlığı" required />
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" name="dueDate" class="form-control bg-transparent text-white" required />
+                        </div>
+                        <div class="col-md-3">
+                             <select name="assignedUserId" class="form-select bg-darker text-white border-secondary" required>
+                                 <option value="" disabled selected>Üye Seç</option>
+                                 @foreach(var m in Model.MemberStats)
+                                 {
+                                     <option value="@m.UserId">@m.UserName</option>
+                                 }
+                             </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-cyber h-100 w-100"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <!-- Task List -->
+            <h4 class="text-white mb-3 ps-2 border-start border-4 border-info">Grup Görevleri</h4>
+            <div class="d-flex flex-column gap-3">
+                 @if(Model.ActiveTasks.Any())
+                {
+                    @foreach(var task in Model.ActiveTasks)
+                    {
+                        <div class="glass-panel p-3 d-flex align-items-center justify-content-between hover-scale transition-all">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-darker rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-list-check text-neon-purple fs-5"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-white mb-0">@task.Title</h5>
+                                    <div class="text-secondary small">
+                                        <span class="me-3"><i class="bi bi-person me-1"></i>@(task.AssignedToUser?.UserName ?? "Herkes")</span>
+                                        <span><i class="bi bi-clock me-1"></i>@task.DueDate.ToShortDateString()</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge bg-opacity-10 bg-info text-info border border-info">Aktif</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                     <div class="glass-panel p-5 text-center opacity-75">
+                        <i class="bi bi-inbox fs-1 text-secondary mb-3 d-block"></i>
+                        <p class="text-white-50">Henüz aktif bir görev yok.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right: Leaderboard, Stats, Add Member -->
+        <div class="col-lg-4">
+            
+            <!-- Overall Progress -->
+            <div class="glass-panel p-4 mb-4 text-center">
+                 <h5 class="text-white mb-3">Genel Başarı</h5>
+                 <div class="position-relative d-inline-block">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" />
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="var(--neon-green)" stroke-width="8"
+                                stroke-dasharray="339.3" stroke-dashoffset="@(339.3 * (1 - Model.OverallProgress/100.0))"
+                                transform="rotate(-90 60 60)" />
+                    </svg>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <h3 class="text-white mb-0">@Model.OverallProgress%</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="glass-panel p-0 overflow-hidden mb-4">
+                <div class="p-3 bg-darker border-bottom border-secondary">
+                    <h5 class="mb-0 text-neon-text"><i class="bi bi-trophy me-2"></i>Haftalık Liderler</h5>
+                </div>
+                <div class="list-group list-group-flush bg-transparent">
+                    @foreach(var stat in Model.MemberStats)
+                    {
+                        <div class="list-group-item bg-transparent border-bottom border-secondary">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    @if(stat.Rank == 1)
+                                    {
+                                        <i class="bi bi-crown-fill crown-icon"></i>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-circle">@stat.Rank</span>
+                                    }
+                                    <span class="fw-bold text-white">@stat.UserName</span>
+                                </div>
+                                <span class="text-neon-blue fw-bold">@stat.EfficiencyPercent%</span>
+                            </div>
+                            <div class="progress bg-darker" style="height: 6px;">
+                                <div class="progress-bar bg-gradient-to-r from-purple-500 to-pink-500" style="width: @stat.EfficiencyPercent%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Member Add (Bottom Panel) -->
+            @if(Model.IsLeader)
+            {
+                <div class="glass-panel p-4">
+                    <h6 class="text-white mb-3">Üye Ekle</h6>
+                    <form asp-action="AddMember" method="post">
+                        <input type="hidden" name="groupId" value="@Model.Group.Id" />
+                        <div class="input-group">
+                            <input type="email" name="email" class="form-control bg-transparent text-white border-secondary" placeholder="E-posta" required />
+                            <button class="btn btn-outline-light" type="submit">Ekle</button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>

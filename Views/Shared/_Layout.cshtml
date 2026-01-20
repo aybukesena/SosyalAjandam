@@ -1,0 +1,219 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using SosyalAjandam.Models
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var user = await UserManager.GetUserAsync(User);
+    int userLevel = user?.Level ?? 1;
+    int xp = user?.ExperiencePoints ?? 0;
+    int xpToNextLevel = userLevel * 100; // Example
+    int progress = (int)((double)(xp % 100) / 100 * 100); 
+    string auraClass = $"aura-level-{userLevel}";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Aura // Cyber-Zen</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SosyalAjandam.styles.css" asp-append-version="true" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+    <!-- Toggle Button -->
+    <button class="menu-toggle-btn" onclick="toggleMenu()">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- Backdrop -->
+    <div class="menu-backdrop" onclick="toggleMenu()"></div>
+
+    <!-- Floating Glass Menu -->
+    <div class="floating-glass-menu" id="floating-menu">
+        <div class="menu-header">
+             <div class="d-flex align-items-center gap-2">
+                 <h4 class="text-neon-purple m-0">AURA</h4>
+             </div>
+             <button class="menu-close-btn" onclick="toggleMenu()">
+                 <i class="bi bi-x-lg"></i>
+             </button>
+        </div>
+
+        <!-- User Profile / Stats (Pinned Top) -->
+        <div class="px-2 mb-3">
+             @if (user != null)
+            {
+                <div class="user-stats p-3 glass-card text-center mb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-dark border border-secondary text-neon-blue">Lvl @userLevel</span>
+                        <small class="text-light">@xp XP</small>
+                    </div>
+                    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-neon-purple shadow-glow-purple" role="progressbar" style="width: @progress%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="menu-body">
+             <ul class="nav flex-column">
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-grid-fill"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Agenda" asp-action="Index">
+                        <i class="bi bi-calendar-check"></i> Ajandam
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Groups" asp-action="Index">
+                        <i class="bi bi-people-fill"></i> Gruplar
+                    </a>
+                </li>
+                 <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Stats" asp-action="Index">
+                        <i class="bi bi-graph-up-arrow"></i> İstatistikler
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="AuraPlanner" asp-action="Index">
+                        <i class="bi bi-robot text-neon-purple"></i> Akıllı Planlayıcı
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2 text-neon-purple shadow-glow-purple-sm" asp-controller="VisionBoard" asp-action="Index" style="text-shadow: 0 0 5px var(--neon-purple);">
+                        <i class="bi bi-palette-fill me-2"></i> Vision Board
+                    </a>
+                </li>
+                <li class="border-top border-secondary my-3 mx-3"></li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Life" asp-action="Index" asp-route-type="Wishlist">
+                        <i class="bi bi-gift text-neon-purple"></i> Wishlist
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Life" asp-action="Index" asp-route-type="Movie">
+                        <i class="bi bi-film text-danger"></i> Filmler
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex align-items-center gap-2" asp-controller="Life" asp-action="Index" asp-route-type="Book">
+                        <i class="bi bi-book text-info"></i> Kitaplar
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="menu-footer">
+             <partial name="_LoginPartial" />
+        </div>
+    </div>
+
+        <!-- Main Content -->
+        <main class="main-content flex-grow-1">
+            <div class="container-fluid">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    <!-- Aura Assistant Container (Fixed Bottom Right) -->
+    <div id="aura-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 2000;">
+        <!-- Aura component will be injected here -->
+        @{
+            // If we have a specific AuraState from Controller, append it. Otherwise fallback to level class.
+            string dynamicState = ViewBag.AuraState as string;
+            string finalAuraClass = !string.IsNullOrEmpty(dynamicState) ? $"{auraClass} {dynamicState}" : auraClass;
+            string initialMessage = ViewBag.AuraMessage as string ?? "Hazırım!";
+        }
+        <div class="aura-sphere @finalAuraClass" style="width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, var(--neon-blue), var(--neon-purple)); box-shadow: 0 0 20px var(--neon-blue); animation: pulse 3s infinite;">
+             @if (userLevel >= 5)
+             {
+                 <div class="particles"></div>
+             }
+        </div>
+        
+        <!-- Speech Bubble -->
+        <div id="aura-bubble" class="glass-card p-2" style="position: absolute; bottom: 70px; right: 0; width: 220px; display: none; border: 1px solid var(--neon-blue);">
+            <small id="aura-text" class="text-white">@initialMessage</small>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        function toggleMenu() {
+            var menu = document.getElementById('floating-menu');
+            var backdrop = document.querySelector('.menu-backdrop');
+            menu.classList.toggle('active');
+            backdrop.classList.toggle('active');
+        }
+        
+    </script>
+
+    
+    <script>
+        $(document).ready(function() {
+            // Initial greeting if message exists
+            var msg = "@initialMessage";
+            if(msg && msg !== "Hazırım!") {
+                $('#aura-bubble').fadeIn(500).delay(4000).fadeOut(500);
+            }
+        });
+    </script>
+
+    @if (TempData["TaskCompleted"] as bool? == true)
+    {
+        <script>
+            $(document).ready(function() {
+                var aura = $('.aura-sphere');
+                aura.addClass('aura-shapeshift');
+                
+                // Show celebration message
+                $('#aura-text').text("Harika! Bir görevi daha tamamladın!");
+                $('#aura-bubble').fadeIn(300).delay(2000).fadeOut(300);
+
+                setTimeout(function() {
+                    aura.removeClass('aura-shapeshift');
+                }, 2000);
+            });
+        </script>
+    }
+    @if (TempData["LevelUp"] != null)
+    {
+         <script>
+            $(document).ready(function() {
+               $('#aura-text').text("Seviye Atladın! Tebrikler!");
+               $('#aura-bubble').fadeIn(300).delay(3000).fadeOut(300);
+            });
+        </script>
+    }
+    @if (TempData["BadgeEarned"] != null)
+    {
+         <script>
+            $(document).ready(function() {
+               $('#aura-text').text("Yeni Rozet Kazandın: " + "@TempData["BadgeEarned"]");
+               $('#aura-bubble').fadeIn(300).delay(3000).fadeOut(300);
+            });
+        </script>
+    }
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

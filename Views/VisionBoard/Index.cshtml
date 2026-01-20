@@ -1,0 +1,575 @@
+@model IEnumerable<SosyalAjandam.Models.VisionBoardItem>
+
+@{
+    ViewData["Title"] = "Vision Board";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+<style>
+    /* Vision Board Specific Styles */
+    .vision-container {
+        display: flex;
+        height: 85vh;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
+        position: relative;
+    }
+
+    /* Sidebar Tools */
+    .vb-sidebar {
+        width: 250px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        z-index: 100;
+        overflow-y: auto;
+    }
+
+    .vb-tool-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: 8px;
+        cursor: grab;
+        transition: all 0.2s;
+    }
+    .vb-tool-btn:hover {
+        background: rgba(138, 43, 226, 0.2);
+        border-color: var(--neon-purple);
+    }
+
+    /* Canvas Area */
+    .vb-canvas {
+        flex-grow: 1;
+        position: relative;
+        overflow: hidden;
+        background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+    }
+
+    /* Draggable Items */
+    .vb-item {
+        position: absolute;
+        touch-action: none;
+        user-select: none;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .vb-item.selected {
+        border: 2px dashed var(--neon-blue);
+        box-shadow: 0 0 15px var(--neon-blue);
+        z-index: 1000 !important;
+    }
+
+    /* Interaction Handles */
+    .resize-handle {
+        width: 10px;
+        height: 10px;
+        background: var(--neon-purple);
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        border-radius: 50%;
+        cursor: se-resize; 
+        opacity: 0;
+    }
+    .vb-item.selected .resize-handle { opacity: 1; }
+
+    /* Aura Generator */
+    .aura-gen-panel {
+        background: rgba(20, 0, 40, 0.9);
+        border: 1px solid var(--neon-purple);
+        border-radius: 10px;
+        padding: 15px;
+    }
+    
+    .generated-sticker-preview {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 2px solid rgba(255,255,255,0.1);
+        transition: all 0.2s;
+        background: #000;
+        z-index: 9999; /* Force visibility per Step 560 */
+        position: relative;
+    }
+    .generated-sticker-preview:hover {
+        transform: scale(1.05);
+        border-color: white;
+    }
+    .generated-sticker-preview.selected-sticker {
+        border: 3px solid var(--neon-purple); /* Neon Purple Selection */
+        box-shadow: 0 0 15px var(--neon-purple);
+        transform: scale(1.1);
+    }
+    
+    .sticker-effect {
+         /* White border effect using drop-shadow */
+         filter: drop-shadow(2px 0 0 white) 
+                 drop-shadow(-2px 0 0 white) 
+                 drop-shadow(0 2px 0 white) 
+                 drop-shadow(0 -2px 0 white)
+                 drop-shadow(3px 3px 5px rgba(0,0,0,0.3));
+    }
+
+    /* Delete Button */
+    .delete-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 24px;
+        height: 24px;
+        background: #ff4444;
+        color: white;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        z-index: 99999;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        border: 2px solid white;
+    }
+    .vb-item:hover .delete-btn {
+        display: flex;
+    }
+
+    /* Text Item Style */
+    .text-item-content {
+        width: 100%;
+        height: 100%;
+        color: white;
+        text-shadow: 0 0 5px rgba(0,0,0,0.8), 0 0 10px black;
+        font-family: sans-serif;
+        font-weight: bold;
+        font-size: 1.2rem;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    /* Neon Wheel Spinner */
+    .neon-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255,255,255,0.1);
+        border-top: 4px solid var(--neon-purple);
+        border-right: 4px solid var(--neon-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        box-shadow: 0 0 10px var(--neon-purple);
+    }
+    @@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    body.vb-view-mode .vb-sidebar,
+    body.vb-view-mode .vb-header-row,
+    body.vb-view-mode .delete-btn,
+    body.vb-view-mode .resize-handle,
+    body.vb-view-mode .resize-handle { /* Extra safety */
+        display: none !important;
+    }
+
+    body.vb-view-mode .vb-canvas {
+
+    
+    #edit-toggle-btn {
+        position: fixed; top: 20px; right: 90px; /* Left of profile/notifications if any, or rightmost */
+        width: 50px; height: 50px;
+        border-radius: 50%; background: var(--neon-purple); color: white;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 20px var(--neon-purple); border: 2px solid white;
+        z-index: 10000; cursor: pointer; transition: all 0.3s;
+    }
+    #edit-toggle-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--neon-purple); }
+
+</style>
+
+<div id="edit-toggle-btn" title="Düzenleme Modu"><i class="bi bi-pencil-fill"></i></div>
+
+<div class="row mb-3 vb-header-row">
+    <div class="col-6">
+        <h2 class="text-white"><i class="bi bi-palette me-2"></i> Vision Board</h2>
+    </div>
+    <div class="col-6 text-end">
+        <button id="save-board-btn" class="btn btn-cyber neon-glow-green">
+            <i class="bi bi-save me-2"></i> Kaydet
+        </button>
+    </div>
+</div>
+
+<div class="vision-container">
+    <!-- Sidebar -->
+    <div class="vb-sidebar">
+        <h6 class="text-secondary small fw-bold">ARAÇLAR</h6>
+        
+        <!-- Upload -->
+        <label class="btn btn-outline-light w-100 text-start">
+            <i class="bi bi-upload me-2"></i> Fotoğraf Yükle
+            <input type="file" id="img-upload" accept="image/*" hidden>
+        </label>
+
+        <hr class="border-secondary">
+        
+
+
+        <h6 class="text-secondary small fw-bold">DEKORASYON</h6>
+        <div class="vb-tool-btn draggable-source" data-type="tape" data-src="/images/tape1.png" draggable="true">
+            <i class="bi bi-bandaid"></i> Bant
+        </div>
+        <div class="vb-tool-btn draggable-source" data-type="note" draggable="true">
+            <i class="bi bi-sticky"></i> Not Kağıdı
+        </div>
+        <div class="vb-tool-btn draggable-source" data-type="text" draggable="true">
+            <i class="bi bi-fonts"></i> Metin Kutusu
+        </div>
+    </div>
+
+    
+
+    <!-- Canvas -->
+    <div id="vb-canvas" class="vb-canvas">
+        @if(Model != null)
+        {
+            @foreach(var item in Model)
+            {
+                if (item.Type == "config_bg")
+                {
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                             const bg = '@item.Content';
+                             const canvas = document.getElementById('vb-canvas');
+                             if(canvas) {
+                               canvas.style.backgroundColor = bg;
+                               document.body.style.backgroundColor = bg; // Also set body for fullscreen
+                             }
+                             const picker = document.getElementById('bg-color-picker');
+                             if(picker) picker.value = bg;
+                        });
+                    </script>
+                    continue;
+                }
+
+                <div class="vb-item" data-id="@item.Id" data-type="@item.Type"
+                     style="transform: translate(@(item.X.ToString(System.Globalization.CultureInfo.InvariantCulture))px, @(item.Y.ToString(System.Globalization.CultureInfo.InvariantCulture))px) rotate(@(item.Rotation.ToString(System.Globalization.CultureInfo.InvariantCulture))deg); width: @(item.Width.ToString(System.Globalization.CultureInfo.InvariantCulture))px; height: @(item.Height.ToString(System.Globalization.CultureInfo.InvariantCulture))px; z-index: @item.ZIndex;"
+                     data-x="@item.X.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-y="@item.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-w="@item.Width.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-h="@item.Height.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-r="@item.Rotation.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                    
+                    <div class="delete-btn" onclick="deleteItem(this.parentElement, @item.Id)"><i class="bi bi-x"></i></div>
+
+                    @if(item.Type == "image" || item.Type == "sticker")
+                    {
+                        <img src="@item.Content" style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;">
+                    }
+                    else if(item.Type == "note")
+                    {
+                        <div class="p-2" contenteditable="true" style="background: #ffeba7; width: 100%; height: 100%; color: #000; font-family: 'Courier New'; overflow: hidden;">
+                             @Html.Raw(item.Content)
+                        </div>
+                    }
+                    else if(item.Type == "text")
+                    {
+                        <div class="text-item-content" contenteditable="true">
+                            @Html.Raw(item.Content)
+                        </div>
+                    }
+                    else if(item.Type == "tape")
+                    {
+                         <div style="background: rgba(255,255,255,0.4); width: 100%; height: 100%; transform: rotate(-5deg);"></div>
+                    }
+
+                    <div class="resize-handle"></div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+
+
+
+
+
+<script>
+    const saveUrl = '@Url.Action("Save", "VisionBoard")';
+    const genUrl = '@Url.Action("GenerateSticker", "VisionBoard")';
+    const createItemUrl = '@Url.Action("CreateItem", "VisionBoard")';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        let isEditMode = false;
+        const canvas = document.getElementById('vb-canvas');
+        
+        // --- 1. Interact.js Setup ---
+        interact('.vb-item')
+            .draggable({
+                inertia: true,
+                autoScroll: true,
+                listeners: { move: dragMoveListener }
+            })
+            .resizable({
+                edges: { left: true, right: true, bottom: true, top: true },
+                // Keep aspect ratio modifier if desired, but here we just keep text flow simple
+                listeners: { move: resizeMoveListener }
+            })
+            .gesturable({
+                listeners: { move: gestureMoveListener }
+            })
+            .on('tap', function(event){
+                 document.querySelectorAll('.vb-item').forEach(el => el.classList.remove('selected'));
+                 event.currentTarget.classList.add('selected');
+                 // Bring to front
+                 bringToFront(event.currentTarget);
+            });
+
+        // Click background to deselect
+        canvas.addEventListener('click', (e) => {
+            if(e.target === canvas) {
+                document.querySelectorAll('.vb-item').forEach(el => el.classList.remove('selected'));
+            }
+        });
+
+        // --- Drag Move ---
+        function dragMoveListener(event) {
+            var target = event.target;
+            var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+            var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+            translateElement(target, x, y);
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+        }
+
+        // --- Resize Move ---
+        function resizeMoveListener(event) {
+            var target = event.target;
+            var x = (parseFloat(target.getAttribute('data-x')) || 0);
+            var y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+            target.style.width = event.rect.width + 'px';
+            target.style.height = event.rect.height + 'px';
+            target.setAttribute('data-w', event.rect.width);
+            target.setAttribute('data-h', event.rect.height);
+
+            x += event.deltaRect.left;
+            y += event.deltaRect.top;
+
+            translateElement(target, x, y);
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+        }
+        
+        // --- Rotate Gesture (Touch) or Wheel (Mouse - Custom) ---
+        function gestureMoveListener(event) {
+             var target = event.target;
+             var angle = (parseFloat(target.getAttribute('data-r')) || 0) + event.da;
+             
+             target.style.transform = `translate(${target.getAttribute('data-x')}px, ${target.getAttribute('data-y')}px) rotate(${angle}deg)`;
+             target.setAttribute('data-r', angle);
+        }
+        
+        // Helper to apply transform
+        function translateElement(target, x, y) {
+            var r = target.getAttribute('data-r') || 0;
+            target.style.transform = 'translate(' + x + 'px, ' + y + 'px) rotate(' + r + 'deg)';
+        }
+        
+        let maxZ = 10;
+        function bringToFront(el) {
+            maxZ++;
+            el.style.zIndex = maxZ;
+        }
+
+        // --- 2. Image Upload ---
+        document.getElementById('img-upload').addEventListener('change', function(e){
+             if (this.files && this.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                   createItem('image', e.target.result);
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // --- 3. Aura Generator ---
+
+
+        // --- 4. Sidebar Tools (Drag to create - Simplified to Click for MVP) ---
+        // For drag-drop from sidebar to canvas using HTML5 D&D -> complicated with interact.js coordinates
+        // Easier: Click to add to center
+        
+        document.querySelectorAll('.draggable-source').forEach(btn => {
+            btn.onclick = () => {
+                let type = btn.getAttribute('data-type');
+                if(type === 'tape') createItem('tape', '');
+                if(type === 'note') createItem('note', 'Hedef 2026!');
+                if(type === 'text') createItem('text', 'Metin eklemek için çift tıklayın');
+            };
+        });
+
+        // --- Create Item Logic ---
+        function createItem(type, content, id = 0) {
+            const div = document.createElement('div');
+            div.className = 'vb-item';
+            div.setAttribute('data-id', id); // Set DB ID
+            div.setAttribute('data-type', type);
+            div.setAttribute('data-x', 100);
+            div.setAttribute('data-y', 100);
+            div.setAttribute('data-w', 150);
+            div.setAttribute('data-h', 150);
+            div.setAttribute('data-r', 0);
+            
+            // Set styles
+            div.style.transform = 'translate(100px, 100px)';
+            div.style.width = '150px';
+            div.style.height = '150px';
+            div.style.zIndex = ++maxZ;
+
+            // Delete Button
+            div.innerHTML = `<div class="delete-btn" onclick="deleteItem(this.parentElement, ${id})"><i class="bi bi-x"></i></div>`;
+
+            if(type === 'image') {
+                div.innerHTML += `<img src="${content}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
+            } else if(type === 'sticker') {
+                div.innerHTML += `<img src="${content}" class="sticker-effect" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
+            } else if(type === 'note') {
+                div.innerHTML += `<div contenteditable="true" style="background: #ffeba7; width: 100%; height: 100%; color: #000; font-family: 'Courier New'; padding: 10px; overflow:hidden;">${content}</div>`;
+            } else if(type === 'tape') {
+                div.innerHTML += `<div style="background: rgba(255,255,255,0.4); width: 100%; height: 40px; transform: rotate(-5deg); margin-top:50px;"></div>`;
+                div.style.height = '100px'; 
+            } else if(type === 'text') {
+                div.innerHTML += `<div class="text-item-content" contenteditable="true">${content}</div>`;
+            }
+            
+            div.innerHTML += '<div class="resize-handle"></div>';
+            
+            canvas.appendChild(div);
+        }
+
+        // Global Delete Function
+        window.deleteItem = function(element, id) {
+            if(confirm('Bu öğeyi silmek istediğinize emin misiniz?')) {
+                element.remove();
+                if(id > 0) {
+                    // Remove from DB
+                    fetch('@Url.Action("Delete", "VisionBoard")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(id)
+                    });
+                }
+            }
+        };
+
+        // --- 5. Save ---
+        document.getElementById('save-board-btn').addEventListener('click', () => {
+             const items = [];
+             document.querySelectorAll('.vb-item').forEach(el => {
+                 let content = '';
+                 let type = el.getAttribute('data-type');
+                 
+                 if(type === 'image' || type === 'sticker') {
+                     content = el.querySelector('img').src;
+                 } else if(type === 'note' || type === 'text') {
+                     // Get HTML for text/note to preserve formatting if any, or innerText
+                     content = el.querySelector('[contenteditable]').innerHTML; 
+                 }
+
+                 items.push({
+                     Type: type,
+                     Content: content,
+                     X: parseFloat(el.getAttribute('data-x')),
+                     Y: parseFloat(el.getAttribute('data-y')),
+                     Width: parseFloat(el.style.width), // Use style for current
+                     Height: parseFloat(el.style.height),
+                     Rotation: parseFloat(el.getAttribute('data-r') || 0),
+                     ZIndex: parseInt(el.style.zIndex || 1)
+                 });
+             });
+
+             fetch(saveUrl, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(items)
+             })
+             .then(r => r.json())
+             .then(d => {
+                 if(d.success) {
+                     // Auto switch back to View Mode
+                     document.body.classList.add('vb-view-mode');
+                     document.getElementById('edit-toggle-btn').innerHTML = '<i class="bi bi-pencil-fill"></i>';
+                     
+                     // Optional: Toast feedback instead of alert
+                     const toast = document.createElement('div');
+                     toast.className = 'fixed-bottom mb-5 mx-auto p-2 bg-success text-white rounded text-center small';
+                     toast.style.width = '200px';
+                     toast.style.zIndex = '11000';
+                     toast.innerText = 'Pano güncellendi!';
+                     document.body.appendChild(toast);
+                     setTimeout(() => toast.remove(), 2000);
+                 }
+             });
+        });
+
+
+
+        // --- 6. View/Edit Mode Toggle ---
+        const editBtn = document.getElementById('edit-toggle-btn');
+        const hasContent = @(Model != null && Model.Any() ? "true" : "false");
+        
+        // Helper to sync state
+        function updateMode() {
+             // 1. Toggle Interact
+             interact('.vb-item').draggable(isEditMode).resizable(isEditMode);
+             
+             // 2. Toggle Classes & Icon
+             if(isEditMode) {
+                 document.body.classList.remove('vb-view-mode');
+                 editBtn.innerHTML = '<i class="bi bi-eye-fill"></i>'; // Click to VIEW
+                 // Remove view-only class if used separately
+                 canvas.classList.remove('view-only');
+             } else {
+                 document.body.classList.add('vb-view-mode');
+                 editBtn.innerHTML = '<i class="bi bi-pencil-fill"></i>'; // Click to EDIT
+                 canvas.classList.add('view-only'); // Enforce pointer events none
+             }
+        }
+
+        // Initial State Setup
+        if(hasContent) {
+            isEditMode = false;
+        } else {
+            // New board -> Edit mode
+             isEditMode = true;
+        }
+        
+        // Apply initial state
+        updateMode();
+
+        if(editBtn) {
+            editBtn.addEventListener('click', () => {
+                 isEditMode = !isEditMode;
+                 updateMode();
+            });
+        }
+    });
+</script>

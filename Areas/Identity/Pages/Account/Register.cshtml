@@ -1,0 +1,58 @@
+﻿@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5">
+        <div class="glass-panel p-5">
+            <div class="text-center mb-4">
+                <h1 class="display-4 fw-bold text-white">Kayıt Ol</h1>
+                <p class="text-white-50">Aramıza katıl ve üretkenliğini artır.</p>
+            </div>
+            
+            <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.FullName" class="form-control bg-transparent text-white" autocomplete="name" aria-required="true" placeholder="Name Surname" />
+                    <label asp-for="Input.FullName" class="text-secondary">Ad Soyad (Kullanıcı Adı)</label>
+                    <span asp-validation-for="Input.FullName" class="text-danger"></span>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control bg-transparent text-white" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <label asp-for="Input.Email" class="text-secondary">E-posta</label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control bg-transparent text-white" autocomplete="new-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.Password" class="text-secondary">Şifre</label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.ConfirmPassword" class="form-control bg-transparent text-white" autocomplete="new-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.ConfirmPassword" class="text-secondary">Şifre Tekrar</label>
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                </div>
+                
+                <div class="d-grid gap-2 mb-3">
+                    <button id="registerSubmit" type="submit" class="btn btn-cyber btn-lg">Kayıt Ol</button>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-white-50">
+                        Zaten hesabın var mı? <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none">Giriş Yap</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

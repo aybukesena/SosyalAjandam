@@ -1,0 +1,249 @@
+@model SosyalAjandam.Models.ViewModels.PlannerInputViewModel
+@{
+    ViewData["Title"] = "Aura Akıllı Planlayıcı";
+}
+
+<div class="container-fluid p-4">
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h1 class="display-4 fw-bold text-transparent bg-clip-text" style="background: linear-gradient(to right, var(--neon-purple), var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Aura Akıllı Planlayıcı
+            </h1>
+            <p class="text-secondary lead">Haftalık hedeflerini, önceliğini ve günlerini seç; Aura planlasın.</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="glass-panel p-4 position-relative" id="planner-card">
+                
+                <!-- Input Form -->
+                <div id="planner-form-container">
+                    <form id="planner-form">
+                        <div id="categories-container" class="mb-4">
+                            <!-- Header -->
+                            <div class="d-none d-md-flex row text-secondary small mb-2 px-2">
+                                <div class="col-md-3">Kategori</div>
+                                <div class="col-md-2">Süre (Saat)</div>
+                                <div class="col-md-2">Öncelik</div>
+                                <div class="col-md-4">Günler</div>
+                                <div class="col-md-1"></div>
+                            </div>
+
+                            <!-- Initial Row -->
+                            <div class="category-row glass-panel px-3 py-3 mb-3 border-0 bg-transparent-force">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control bg-transparent text-white border-secondary" name="Inputs[0].Category" placeholder="Örn: Matematik" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control bg-transparent text-white border-secondary" name="Inputs[0].Hours" placeholder="4" min="1" max="20" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                         <select class="form-select bg-transparent text-white border-secondary" name="Inputs[0].Priority">
+                                            <option value="0" class="text-dark">Düşük</option>
+                                            <option value="1" class="text-dark" selected>Orta</option>
+                                            <option value="2" class="text-dark">Önemli</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start overflow-hidden" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Günleri Seç
+                                            </button>
+                                            <ul class="dropdown-menu p-2 bg-dark border-secondary" style="min-width: 200px;">
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Monday" checked> <label class="text-white">Pazartesi</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Tuesday" checked> <label class="text-white">Salı</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Wednesday" checked> <label class="text-white">Çarşamba</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Thursday" checked> <label class="text-white">Perşembe</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Friday" checked> <label class="text-white">Cuma</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Saturday" checked> <label class="text-white">Cumartesi</label></li>
+                                                <li class="form-check"><input class="form-check-input" type="checkbox" value="Sunday" checked> <label class="text-white">Pazar</label></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <button type="button" class="btn btn-outline-danger remove-row" style="display:none;"><i class="bi bi-x"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-4" id="add-row-btn">
+                            <i class="bi bi-plus-circle me-1"></i> Yeni Hedef Ekle
+                        </button>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-cyber btn-lg neon-glow">
+                                <i class="bi bi-stars me-2"></i> Aura Plan Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Thinking Animation -->
+                <div id="thinking-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none flex-column align-items-center justify-content-center rounded glass-blur" style="background: rgba(0,0,0,0.8); z-index: 10;">
+                    <div class="aura-sphere aura-pulse-fast mb-4" style="width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, var(--neon-blue), var(--neon-purple)); box-shadow: 0 0 30px var(--neon-blue);"></div>
+                    <h4 class="text-white shimmer-text">Aura Düşünüyor...</h4>
+                    <p class="text-secondary small">Önceliklerine göre en verimli program hazırlanıyor.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="result-container" class="row mt-5 d-none">
+        <div class="col-12 text-center mb-4">
+            <h3 class="text-white">Aura'nın Senin İçin Hazırladığı Program</h3>
+        </div>
+        <div class="col-12" id="plan-preview">
+            <!-- Partial View will be loaded here -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var rowCount = 1;
+
+            // Template for new row
+            function getRowTemplate(index) {
+                return `
+                <div class="category-row glass-panel px-3 py-3 mb-3 border-0 bg-transparent-force">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control bg-transparent text-white border-secondary" name="Inputs[${index}].Category" placeholder="Kategori" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control bg-transparent text-white border-secondary" name="Inputs[${index}].Hours" placeholder="Süre" min="1" max="20" required>
+                        </div>
+                        <div class="col-md-2">
+                                <select class="form-select bg-transparent text-white border-secondary" name="Inputs[${index}].Priority">
+                                <option value="0" class="text-dark">Düşük</option>
+                                <option value="1" class="text-dark" selected>Orta</option>
+                                <option value="2" class="text-dark">Önemli</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start overflow-hidden" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Günleri Seç
+                                </button>
+                                <ul class="dropdown-menu p-2 bg-dark border-secondary" style="min-width: 200px;">
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Monday" checked> <label class="text-white">Pazartesi</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Tuesday" checked> <label class="text-white">Salı</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Wednesday" checked> <label class="text-white">Çarşamba</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Thursday" checked> <label class="text-white">Perşembe</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Friday" checked> <label class="text-white">Cuma</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Saturday" checked> <label class="text-white">Cumartesi</label></li>
+                                    <li class="form-check"><input class="form-check-input" type="checkbox" value="Sunday" checked> <label class="text-white">Pazar</label></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <button type="button" class="btn btn-outline-danger remove-row"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // Add Row
+            $('#add-row-btn').click(function() {
+                $('#categories-container').append(getRowTemplate(rowCount));
+                rowCount++;
+            });
+
+            // Remove Row
+            $(document).on('click', '.remove-row', function() {
+                $(this).closest('.category-row').remove();
+            });
+
+            // Prevent Dropdown closing on checkbox click
+            $(document).on('click', '.dropdown-menu', function (e) {
+                e.stopPropagation();
+            });
+
+            // Submit Form
+            $('#planner-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                var inputs = [];
+                $('.category-row').each(function() {
+                    var $row = $(this);
+                    var cat = $row.find('input[type="text"]').val();
+                    var hrs = $row.find('input[type="number"]').val();
+                    var pri = $row.find('select').val();
+                    
+                    var days = [];
+                    $row.find('input[type="checkbox"]:checked').each(function() {
+                        days.push($(this).val());
+                    });
+
+                    if(cat && hrs) {
+                        inputs.push({ 
+                            Category: cat, 
+                            Hours: parseInt(hrs),
+                            Priority: parseInt(pri),
+                            SelectedDays: days
+                        });
+                    }
+                });
+
+                var data = { Inputs: inputs };
+
+                $('#thinking-overlay').removeClass('d-none').addClass('d-flex');
+                
+                setTimeout(function() {
+                    $.ajax({
+                        url: '@Url.Action("Generate", "AuraPlanner")',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(data),
+                        success: function(response) {
+                            $('#thinking-overlay').addClass('d-none').removeClass('d-flex');
+                            $('#planner-card').slideUp();
+                            $('#result-container').removeClass('d-none').hide().fadeIn();
+                            $('#plan-preview').html(response);
+                        },
+                        error: function() {
+                            alert('Bir hata oluştu.');
+                            $('#thinking-overlay').addClass('d-none').removeClass('d-flex');
+                        }
+                    });
+                }, 2000);
+            });
+        });
+
+        function confirmPlan() {
+             var tasks = [];
+             $('.planned-task-item').each(function() {
+                 var title = $(this).data('title');
+                 var date = $(this).data('date');
+                 var priority = $(this).data('priority');
+                 var duration = $(this).data('duration');
+                 
+                 tasks.push({ Title: title, Date: date, Priority: priority, DurationDescription: duration });
+             });
+             
+             var data = { PlannedTasks: tasks };
+             
+             $.ajax({
+                url: '@Url.Action("Confirm", "AuraPlanner")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(res) {
+                    if(res.success) {
+                        window.location.href = res.redirectUrl;
+                    }
+                }
+             });
+        }
+
+        function retryPlan() {
+             $('#result-container').addClass('d-none');
+             $('#planner-card').slideDown();
+        }
+    </script>
+}

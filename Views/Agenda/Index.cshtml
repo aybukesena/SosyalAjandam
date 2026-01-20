@@ -1,0 +1,339 @@
+@model IEnumerable<SosyalAjandam.Models.TodoItem>
+@using SosyalAjandam.Models
+
+@{
+    ViewData["Title"] = "Ajandam";
+    
+    // Retrieve Sorted Dates from Controller
+    var sortedDates = ViewBag.SortedDates as List<DateTime>;
+    bool hasData = sortedDates != null && sortedDates.Any();
+    
+    // Navigation Data
+    int currentMonth = ViewBag.CurrentMonth;
+    int currentYear = ViewBag.CurrentYear;
+    string currentMonthName = ViewBag.CurrentMonthName;
+
+    int prevMonth = ViewBag.PrevMonth;
+    int prevYear = ViewBag.PrevYear;
+    int nextMonth = ViewBag.NextMonth;
+    int nextYear = ViewBag.NextYear;
+    
+    var today = DateTime.Today;
+}
+
+<div class="container-fluid p-4 fade-in-bck position-relative" style="min-height: 85vh;">
+    
+    <!-- Navigation Arrows -->
+    <a asp-controller="Agenda" asp-action="Index" asp-route-month="@prevMonth" asp-route-year="@prevYear" class="agenda-nav-arrow arrow-left text-decoration-none">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    
+    <a asp-controller="Agenda" asp-action="Index" asp-route-month="@nextMonth" asp-route-year="@nextYear" class="agenda-nav-arrow arrow-right text-decoration-none">
+        <i class="bi bi-chevron-right"></i>
+    </a>
+
+    <!-- Header & Month Title -->
+    <div class="text-center mb-5 position-relative">
+        <div class="glass-header-month mb-3">
+            <h1 class="text-white fw-bold mb-0 display-4 text-shadow-neon">@currentMonthName @currentYear</h1>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-3 px-5">
+             <div>
+                 <span class="text-secondary small ms-2">
+                    <i class="bi bi-check2-circle text-neon-green"></i> @ViewBag.DailyCompleted / @ViewBag.DailyTotal Görev
+                 </span>
+            </div>
+
+            <button type="button" class="btn btn-cyber neon-glow-purple px-4" data-bs-toggle="modal" data-bs-target="#managementModal" style="background: var(--neon-purple); border: none;">
+                <i class="bi bi-list-check me-2"></i> Planlayıcı / Yönetim
+            </button>
+        </div>
+    </div>
+
+    <!-- Cards Layout -->
+    <div class="row g-4 justify-content-center">
+        @if (hasData)
+        {
+            @foreach (var date in sortedDates)
+            {
+                var tasksForDay = Model.Where(t => t.DueDate.Date == date).ToList();
+                // Ensure High Priority is first within the day
+                tasksForDay = tasksForDay.OrderByDescending(t => t.Priority).ToList(); 
+
+                var isToday = date == today;
+                bool isPast = date < today;
+                bool isAllCompleted = tasksForDay.All(t => t.IsCompleted) && tasksForDay.Any();
+                
+                // Format Date
+                string dayName = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").DateTimeFormat.GetDayName(date.DayOfWeek);
+                string dateString = date.ToString("dd.MM.yyyy");
+
+                <div class="col-md-4 col-lg-3">
+                    <div class="glass-card h-100 d-flex flex-column @(isToday ? "neon-border" : "")" 
+                         style="@(isAllCompleted ? "opacity: 0.6; filter: grayscale(0.6);" : "") transition: all 0.3s;">
+                        
+                        <!-- Card Header -->
+                        <div class="border-bottom border-secondary pb-2 mb-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0 @(isToday ? "text-neon-blue" : "text-white")">@dayName</h5>
+                                <small class="text-secondary">@dateString</small>
+                            </div>
+                            @if (isToday)
+                            {
+                                <span class="badge bg-neon-purple rounded-pill">Bugün</span>
+                            }
+                            else if(isAllCompleted)
+                            {
+                                 <span class="badge bg-success rounded-pill"><i class="bi bi-check-all"></i></span>
+                            }
+                        </div>
+
+                        <!-- Tasks List -->
+                        <div class="flex-grow-1">
+                             <ul class="list-unstyled mb-0">
+                                @foreach (var item in tasksForDay)
+                                {
+                                    string priorityColor = item.Priority == PriorityLevel.High ? "text-danger" 
+                                                         : item.Priority == PriorityLevel.Medium ? "text-warning" 
+                                                         : "text-info";
+                                    
+                                    <li class="mb-3">
+                                        <!-- Interactive Row Header -->
+                                        <div class="d-flex align-items-center justify-content-between p-2 rounded glass-panel task-row-interactive" 
+                                             style="@(item.IsCompleted ? "opacity: 0.5;" : "")"
+                                             data-bs-toggle="collapse" 
+                                             data-bs-target="#taskDetail_@item.Id" 
+                                             aria-expanded="false">
+                                            
+                                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                <!-- Checkbox (Form stops bubbling) -->
+                                                <div onclick="event.stopPropagation()">
+                                                    <form asp-action="ToggleStatus" method="post" class="d-inline-block m-0">
+                                                        <input type="hidden" name="id" value="@item.Id" />
+                                                        <button type="submit" class="btn btn-link p-0 text-decoration-none focus-ring border-0">
+                                                            <i class="bi @(item.IsCompleted ? "bi-check-circle-fill text-neon-green" : "bi-circle text-secondary") fs-5"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                
+                                                <!-- Title -->
+                                                <span class="text-truncate @(item.IsCompleted ? "text-decoration-line-through text-secondary" : "text-light") fw-bold" title="@item.Title">
+                                                    @item.Title
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Icons/Duration -->
+                                            <div class="d-flex align-items-center gap-2 ms-2 flex-shrink-0">
+                                                 <i class="bi bi-circle-fill @priorityColor" style="font-size: 8px;" title="@item.Priority Öncelik"></i>
+                                                 <i class="bi bi-chevron-down text-secondary small"></i>
+                                            </div>
+                                        </div>
+
+                                        <!-- Collapsible Detail Pane -->
+                                        <div class="collapse" id="taskDetail_@item.Id">
+                                            <div class="task-details-pane">
+                                                <div class="mb-2">
+                                                    <span class="detail-label">GÖREV</span>
+                                                    <div class="detail-text text-white">@item.Title</div>
+                                                </div>
+                                                
+                                                @if(!string.IsNullOrEmpty(item.Description))
+                                                {
+                                                    <div class="mb-2">
+                                                        <span class="detail-label">AÇIKLAMA</span>
+                                                        <div class="detail-text fst-italic">"@item.Description"</div>
+                                                    </div>
+                                                }
+
+                                                <div class="d-flex justify-content-between mt-3 border-top border-secondary pt-2">
+                                                    <div>
+                                                        <span class="detail-label">SÜRE</span>
+                                                        <span class="text-neon-blue small">@(!string.IsNullOrEmpty(item.EstimatedDuration) ? item.EstimatedDuration : "-")</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="detail-label">ÖNCELİK</span>
+                                                        <span class="@priorityColor small">
+                                                            @(item.Priority == PriorityLevel.High ? "Önemli" : 
+                                                              item.Priority == PriorityLevel.Medium ? "Orta" : "Düşük")
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+             <div class="col-12 text-center py-5">
+                <div class="glass-panel d-inline-block p-5 text-secondary">
+                    <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-50"></i>
+                    <h4 class="fw-light">Bu ay planlanmış görev yok.</h4>
+                    <p class="small">Yeni bir görev ekleyerek başlayabilirsin!</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@{
+    var defaultDate = new DateTime(currentYear, currentMonth, DateTime.Now.Day > DateTime.DaysInMonth(currentYear, currentMonth) ? 1 : DateTime.Now.Day);
+    if(currentMonth == DateTime.Now.Month && currentYear == DateTime.Now.Year) defaultDate = DateTime.Now;
+    if(currentMonth != DateTime.Now.Month || currentYear != DateTime.Now.Year)
+    {
+         defaultDate = new DateTime(currentYear, currentMonth, 1);
+    }
+}
+
+<!-- Management Modal -->
+<div class="modal fade" id="managementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-panel border-0 text-white" style="backdrop-filter: blur(20px); background: rgba(10, 10, 20, 0.95);">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title text-neon-purple"><i class="bi bi-list-check me-2"></i> Görev Yönetimi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Add New Prompt -->
+                <div class="p-3 border-bottom border-secondary bg-black bg-opacity-25">
+                     <button class="btn btn-sm btn-outline-success w-100" data-bs-toggle="collapse" data-bs-target="#newManualTaskForm">
+                         <i class="bi bi-plus-lg me-1"></i> Yeni Görev Ekle
+                     </button>
+                     
+                     <div class="collapse mt-3" id="newManualTaskForm">
+                        <div class="card glass-card p-3">
+                            <form asp-action="Create" method="post">
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label small text-secondary">Başlık</label>
+                                        <input type="text" name="Title" class="form-control form-control-sm bg-transparent text-white border-secondary" required placeholder="Görevi girin..." />
+                                    </div>
+                                    <div class="col-md-4">
+                                         <label class="form-label small text-secondary">Tarih</label>
+                                        <input type="date" name="DueDate" class="form-control form-control-sm bg-transparent text-white border-secondary" required value="@defaultDate.ToString("yyyy-MM-dd")" />
+                                    </div>
+                                    
+                                     <div class="col-md-6">
+                                        <label class="form-label small text-secondary">Tahmini Süre</label>
+                                        <input type="text" name="EstimatedDuration" class="form-control form-control-sm bg-transparent text-white border-secondary" placeholder="Örn: 1.5 Saat" />
+                                    </div>
+                                    <div class="col-md-6">
+                                         <label class="form-label small text-secondary">Öncelik</label>
+                                        <select name="Priority" class="form-select form-select-sm bg-transparent text-white border-secondary">
+                                            <option value="0" class="text-dark">Düşük</option>
+                                            <option value="1" class="text-dark" selected>Orta</option>
+                                            <option value="2" class="text-dark">Önemli</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label small text-secondary">Açıklama (İsteğe Bağlı)</label>
+                                        <textarea name="Description" class="form-control form-control-sm bg-transparent text-white border-secondary" rows="2" placeholder="Detaylar..."></textarea>
+                                    </div>
+
+                                    <div class="col-12 text-end">
+                                        <button type="submit" class="btn btn-sm btn-cyber w-25">Kaydet</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                     </div>
+                </div>
+                
+                <!-- List -->
+                <div class="list-group list-group-flush overflow-auto" style="max-height: 400px;">
+                    @if(hasData)
+                    {
+                        var listViewTasks = new List<TodoItem>();
+                        foreach(var date in sortedDates)
+                        {
+                            listViewTasks.AddRange(Model.Where(t => t.DueDate.Date == date).OrderByDescending(t => t.Priority));
+                        }
+                        
+                        foreach(var taskItem in listViewTasks)
+                        {
+                            <div class="list-group-item bg-transparent text-white border-secondary d-flex flex-column gap-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">@taskItem.Title</div>
+                                        <small class="text-secondary">@taskItem.DueDate.ToShortDateString() • @taskItem.EstimatedDuration</small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                         <!-- Edit Trigger -->
+                                        <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#editTask_@taskItem.Id">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+
+                                        <!-- Delete Form -->
+                                        <form asp-action="Delete" method="post" onsubmit="return confirm('Emin misin?');">
+                                            <input type="hidden" name="id" value="@taskItem.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Inline Edit Form Collapse -->
+                                <div class="collapse" id="editTask_@taskItem.Id">
+                                    <div class="card glass-card p-3 mt-2">
+                                        <form asp-action="Edit" method="post">
+                                            <input type="hidden" name="Id" value="@taskItem.Id" />
+                                            <div class="row g-2">
+                                                <div class="col-md-8">
+                                                    <label class="form-label small text-secondary">Başlık</label>
+                                                    <input type="text" name="Title" class="form-control form-control-sm bg-transparent text-white border-secondary" value="@taskItem.Title" required />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small text-secondary">Tarih</label>
+                                                    <input type="date" name="DueDate" class="form-control form-control-sm bg-transparent text-white border-secondary" value="@taskItem.DueDate.ToString("yyyy-MM-dd")" required />
+                                                </div>
+                                                <div class="col-md-6">
+                                                     <label class="form-label small text-secondary">Süre</label>
+                                                     <input type="text" name="EstimatedDuration" class="form-control form-control-sm bg-transparent text-white border-secondary" value="@taskItem.EstimatedDuration" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                     <label class="form-label small text-secondary">Öncelik</label>
+                                                     <select name="Priority" class="form-select form-select-sm bg-transparent text-white border-secondary">
+                                                        <!option value="0" class="@(taskItem.Priority == PriorityLevel.Low ? "text-white bg-dark" : "text-dark")" @(taskItem.Priority == PriorityLevel.Low ? "selected" : "")>Düşük</!option>
+                                                        <!option value="1" class="@(taskItem.Priority == PriorityLevel.Medium ? "text-white bg-dark" : "text-dark")" @(taskItem.Priority == PriorityLevel.Medium ? "selected" : "")>Orta</!option>
+                                                        <!option value="0" class="@(taskItem.Priority == PriorityLevel.Low ? "text-white bg-dark" : "text-dark")" @(taskItem.Priority == PriorityLevel.Low ? "selected" : "")>Düşük</!option>
+                                                        <!option value="1" class="@(taskItem.Priority == PriorityLevel.Medium ? "text-white bg-dark" : "text-dark")" @(taskItem.Priority == PriorityLevel.Medium ? "selected" : "")>Orta</!option>
+                                                        <!option value="2" class="@(taskItem.Priority == PriorityLevel.High ? "text-white bg-dark" : "text-dark")" @(taskItem.Priority == PriorityLevel.High ? "selected" : "")>Önemli</!option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label small text-secondary">Açıklama</label>
+                                                    <textarea name="Description" class="form-control form-control-sm bg-transparent text-white border-secondary" rows="2">@taskItem.Description</textarea>
+                                                </div>
+                                                <div class="col-12 text-end">
+                                                    <button type="submit" class="btn btn-sm btn-success">Güncelle</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-secondary">Bu ay için kayıtlı görev yok.</div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary justify-content-between">
+                <a asp-controller="AuraPlanner" asp-action="Index" class="btn btn-sm btn-link text-neon-blue text-decoration-none">
+                     <i class="bi bi-magic me-1"></i> Aura Planlayıcı'ya Git
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>

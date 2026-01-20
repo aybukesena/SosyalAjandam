@@ -1,0 +1,72 @@
+@model IEnumerable<SosyalAjandam.Models.LifeItem>
+
+@{
+    ViewData["Title"] = ViewBag.PageTitle;
+    var type = (SosyalAjandam.Models.ModuleType)ViewBag.ModuleType;
+    var icon = ViewBag.Icon;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <div class="glass-panel p-3 d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                <i class="bi @icon fs-1 text-neon-blue"></i>
+            </div>
+            <h1 class="display-5 fw-bold text-white mb-0">@ViewData["Title"]</h1>
+        </div>
+
+        <div class="glass-panel p-4 mb-4">
+            <form asp-action="Create" class="row g-2">
+                <input type="hidden" name="type" value="@type" />
+                <div class="col-md-5">
+                    <input type="text" name="title" class="form-control bg-transparent text-white" placeholder="Başlık" required />
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="details" class="form-control bg-transparent text-white" placeholder="Detay (Yazar, Link vs...)" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-cyber w-100">Ekle</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+             @if (Model.Any())
+            {
+                @foreach (var item in Model)
+                {
+                    <div class="glass-panel p-3 d-flex align-items-center justify-content-between hover-scale">
+                        <div class="d-flex align-items-center gap-3">
+                            <form asp-action="ToggleStatus" method="post">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="hidden" name="type" value="@type" />
+                                <button class="btn btn-link p-0 text-decoration-none">
+                                    <i class="bi @(item.IsCompleted ? "bi-check-circle-fill text-neon-green" : "bi-circle text-secondary") fs-4"></i>
+                                </button>
+                            </form>
+                            <div>
+                                <h5 class="mb-0 @(item.IsCompleted ? "text-decoration-line-through text-muted" : "text-white")">@item.Title</h5>
+                                @if(!string.IsNullOrEmpty(item.Details))
+                                {
+                                    <small class="text-white-50">@item.Details</small>
+                                }
+                            </div>
+                        </div>
+                        <form asp-action="Delete" method="post">
+                             <input type="hidden" name="id" value="@item.Id" />
+                             <input type="hidden" name="type" value="@type" />
+                             <button class="btn btn-link text-danger opacity-50 hover-opacity-100"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center text-secondary py-5">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    <p>Henüz bir kayıt yok. Yeni eklemek için yukarıyı kullan!</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

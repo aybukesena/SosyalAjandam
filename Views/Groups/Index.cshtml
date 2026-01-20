@@ -1,0 +1,119 @@
+@model SosyalAjandam.ViewModels.GroupIndexViewModel
+
+@{
+    ViewData["Title"] = "Gruplar";
+}
+
+<div class="row mb-5 align-items-center">
+    <div class="col-md-6">
+        <h1 class="display-4 fw-bold">Gruplar</h1>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a asp-action="Create" class="btn btn-cyber btn-lg">
+            <i class="bi bi-plus-lg me-2"></i>Yeni Grup Oluştur
+        </a>
+    </div>
+</div>
+
+<!-- Search & Discover -->
+<div class="glass-panel p-4 mb-5">
+    <form asp-action="Index" method="get" class="d-flex gap-3">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent text-white border-secondary"><i class="bi bi-search"></i></span>
+            <input type="text" name="searchString" value="@Model.SearchString" class="form-control bg-transparent text-white border-secondary" placeholder="Grup ara (Web Programlama, Kitap Kulübü...)" />
+        </div>
+        <button type="submit" class="btn btn-cyber-outline">Ara</button>
+    </form>
+</div>
+
+<!-- My Groups -->
+<h3 class="mb-4 text-neon-blue"><i class="bi bi-people-fill me-2"></i>Gruplarım</h3>
+@if (Model.MyGroups.Any())
+{
+    <div class="row mb-5">
+        @foreach (var group in Model.MyGroups)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="glass-panel p-4 h-100 position-relative hover-scale transition-all">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="text-white mb-2">@group.Name</h4>
+                            <p class="text-white-50 small mb-3">@group.Description</p>
+                        </div>
+                        @if (true) // Check if leader logic could be here, but Details handles it
+                        {
+                            // Could add a badge here if leader
+                        }
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3 border-top border-secondary pt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-fill text-secondary me-2"></i>
+                            <span class="text-white-50">@group.Members.Count Üye</span>
+                        </div>
+                         <div class="dropdown">
+                            @if (group.JoinRequests != null && group.JoinRequests.Count(r => r.Status == "Pending") > 0)
+                            {
+                                <span class="position-relative me-2">
+                                    <i class="bi bi-bell-fill text-warning fs-5"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                        <span class="visually-hidden">New alerts</span>
+                                    </span>
+                                </span>
+                            }
+                            <a asp-action="Details" asp-route-id="@group.Id" class="btn btn-sm btn-cyber">Görev Paneli</a>
+                             <button class="btn btn-sm btn-link text-white-50" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li>
+                                    <form asp-action="LeaveGroup" method="post">
+                                        <input type="hidden" name="groupId" value="@group.Id" />
+                                        <button type="submit" class="dropdown-item text-danger">Gruptan Ayrıl</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p class="text-white-50 mb-5">Henüz üye olduğunuz bir grup yok.</p>
+}
+
+<!-- Discover Groups -->
+<h3 class="mb-4 text-neon-purple"><i class="bi bi-globe me-2"></i>Keşfet</h3>
+@if (Model.DiscoverGroups.Any())
+{
+    <div class="row">
+        @foreach (var group in Model.DiscoverGroups)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="glass-panel p-3 h-100 d-flex flex-column">
+                    <div class="mb-auto">
+                        <h5 class="text-white">@group.Name</h5>
+                        <p class="text-white-50 small text-truncate">@group.Description</p>
+                        <div class="small text-secondary mb-3">
+                            <i class="bi bi-person me-1"></i>@group.Members.Count Üye
+                        </div>
+                    </div>
+                    <form asp-action="SendJoinRequest" method="post" class="mt-3">
+                        <input type="hidden" name="groupId" value="@group.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-light w-100">
+                            <i class="bi bi-person-plus me-2"></i>Katılma İsteği Gönder
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center text-white-50 p-5 glass-panel opacity-50">
+        <i class="bi bi-search fs-1 mb-3 d-block"></i>
+        <p>Aradığınız kriterlere uygun açık grup bulunamadı.</p>
+    </div>
+}
